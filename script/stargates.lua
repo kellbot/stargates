@@ -61,7 +61,7 @@ local make_rename_frame = function(player, caption)
   player.opened = nil
 
   local force = player.force
-  local stargates = data.networks[force.name]
+  local stargates = data.networks['player']
   local param = stargates[caption]
   local text = param.flying_text
   local gui = player.gui.screen
@@ -160,7 +160,7 @@ local make_stargate_gui = function(player, source)
   end
 
   local force = source.force
-  local network = data.networks[force.name]
+  local network = data.networks['player']
   if not network then return end
 
   local gui = player.gui.screen
@@ -385,7 +385,7 @@ local resync_stargate = function(name, stargate_data)
 end
 
 local is_name_available = function(force, name)
-  local network = data.networks[force.name]
+  local network = data.networks['player']
   return not network[name]
 end
 
@@ -394,7 +394,7 @@ local rename_stargate = function(force, old_name, new_name)
     refresh_stargate_frames()
     return
   end
-  local network = data.networks[force.name]
+  local network = data.networks['player']
   local stargate_data = network[old_name]
   network[new_name] = stargate_data
   network[old_name] = nil
@@ -479,8 +479,7 @@ local gui_actions =
   end
 }
 
-local get_network = function(force)
-  local name = force.name
+local get_network = function(name)
   local network = data.networks[name]
   if network then return network end
   data.networks[name] = {}
@@ -525,7 +524,7 @@ local on_built_entity = function(event)
   end
   local force = entity.force
   local name = "stargate ".. entity.unit_number
-  local network = get_network(force)
+  local network = get_network('player')
   local stargate_data = {stargate = entity, flying_text = text, tag = tag}
   network[name] = stargate_data
   data.stargate_map[entity.unit_number] = stargate_data
@@ -540,7 +539,7 @@ local on_stargate_removed = function(entity)
   local stargate_data = data.stargate_map[entity.unit_number]
   if not stargate_data then return end
   local caption = stargate_data.flying_text.text
-  local network = get_network(force)
+  local network = get_network('player')
   network[caption] = nil
   clear_stargate_data(stargate_data)
   data.stargate_map[entity.unit_number] = nil
