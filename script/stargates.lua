@@ -1,5 +1,6 @@
 local util = require("script_util")
 local stargate_name = "stargate"
+local Stargate = {}
 
 
 local data =
@@ -289,7 +290,7 @@ local make_stargate_gui = function(player, source)
       label.style.font_color = {}
       label.style.horizontally_stretchable = true
       label.style.maximal_width = preview_size
-      util.register_gui(data.button_actions, button, {type = "teleport_button", param = stargate})
+      util.register_gui(data.button_actions, button, {type = "teleport_button", gates = {origin = source, destination = stargate.stargate}})
       any = true
     end
   end
@@ -460,19 +461,8 @@ local gui_actions =
     --check_player_linked_stargate(player)
   end,
   teleport_button = function(event, param)
-    local teleport_param = param.param
-    if not teleport_param then return end
-    local destination = teleport_param.stargate
-    if not (destination and destination.valid) then return end
-    local destination_surface = destination.surface
-    local destination_position = { x = destination.position.x + 3, y = destination.position.y + 3 }
-    local player = game.players[event.player_index]
-    if not (player and player.valid) then return end
-
-    --This teleport doesn't check collisions. If someone complains, make it check 'can_place' and if false find a positions etc....
-    player.teleport(destination_position, destination_surface)
-    unlink_stargate(player)
-    add_recent(player, destination)
+    local gates = param.gates
+    Stargate.activate(gates.origin, gates.destination, event.player_index)
   end,
 
   search_text_changed = function(event, param)
@@ -497,6 +487,31 @@ local get_network = function(force)
   return data.networks[name]
 end
 
+function Stargate.activate(origin, destination, player_index)
+
+    -- Check that dialing gate has sufficient power. This should maybe happen earlier.
+    if not (origin and origin.valid) then return end
+    
+    -- -- TODO: energy, error message
+    if not Stargate.can_fire(origin, 1000000000) then 
+      game.players[player_index].print({"low-power-stargate"})
+      return
+    end 
+
+    if not (destination and destination.valid) then return end
+
+    local destination_surface = destination.surface
+    local destination_position = { x = destination.position.x + 3, y = destination.position.y + 3 }
+    local player = game.players[player_index]
+    if not (player and player.valid) then return end
+
+    --This teleport doesn't check collisions. If someone complains, make it check 'can_place' and if false find a positions etc....
+    player.teleport(destination_position, destination_surface)
+    origin.energy = 0
+    unlink_stargate(player)
+    add_recent(player, destination)
+end
+
 local on_built_entity = function(event)
   local entity = event.created_entity or event.entity or event.destination
   if not (entity and entity.valid) then return end
@@ -519,7 +534,7 @@ local on_built_entity = function(event)
 end
 
 local on_stargate_removed = function(entity)
-  if not (entity and entity.valid) then return end
+  if not (entity and entity.valid) then return end 
   if entity.name ~= stargate_name then return end
   local force = entity.force
   local stargate_data = data.stargate_map[entity.unit_number]
@@ -533,22 +548,6 @@ local on_stargate_removed = function(entity)
   data.to_be_removed[entity.unit_number] = true
   refresh_stargate_frames()
   data.to_be_removed[entity.unit_number] = nil
-end
-
-local stargate_triggered = function(entity, player)
-  local character = player.character
-  if not (entity and entity.valid and entity.name == stargate_name) then return error("HEOK") end
-  if character.type ~= "character" then return end
-  local force = entity.force
-  local surface = entity.surface
-  local position = entity.position
-  local param = data.stargate_map[entity.unit_number]
-  if not player then return end
-
-  entity.active = false
-  character.active = false
-  data.player_linked_stargate[player.index] = entity
-  make_stargate_gui(player, entity)
 end
 
 local on_entity_removed = function(event)
@@ -707,12 +706,31 @@ end
 local on_gui_opened= function(event)
   if event.entity and event.entity.valid then
     if event.entity.name == stargate_name then
-      stargate_triggered(event.entity, (game.players[event.player_index]))
+      Stargate.triggered(event.entity, (game.players[event.player_index]))
     end
   end
 
 end
 
+function Stargate.triggered(entity, player)
+  local character = player.character
+  if not (entity and entity.valid and entity.name == stargate_name) then return error("HEOK") end
+  if character.type ~= "character" then return end
+  local force = entity.force
+  local surface = entity.surface
+  local position = entity.position
+  local param = data.stargate_map[entity.unit_number]
+  if not player then return end
+
+  entity.active = false
+  character.active = false
+  data.player_linked_stargate[player.index] = entity
+  make_stargate_gui(player, entity)
+end
+
+function Stargate.can_fire(stargate, energy_required)
+  return stargate and stargate.energy >= energy_required
+end
 
 local stargates = {}
 
@@ -758,22 +776,5 @@ stargates.on_load = function()
     log('loaded')
   data = global.stargates
 end
-
--- stargates.on_configuration_changed = function()
---   -- 0.1.2 migration...
---   data.player_linked_stargate = data.player_linked_stargate or {}
---   data.rename_frames = data.rename_frames or data.frames or {}
---   data.to_be_removed = data.to_be_removed or {}
-
---   --0.1.5...
---   data.stargate_map = data.stargate_map or data.map or {}
---   data.tag_map = data.tag_map or {}
---   resync_all_stargates()
-
---   --0.1.7...
---   data.search_boxes = data.search_boxes or {}
-
---   data.recent = data.recent or {}
--- end
 
 return stargates
