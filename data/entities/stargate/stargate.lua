@@ -5,7 +5,8 @@ local localised_name = {'stargates-se.stargate'}
 local stargate = {
     type = "electric-energy-interface",
     name = "stargate",
-    collision_box = {{-6, -4.5}, {6, 2.5}},
+    localised_name = localised_name,
+    collision_box = {{-6, -2.5}, {6, 4.5}},
     selection_box = {{-6, -4.5}, {6, 4.5}},
     drawing_box = {{-6, -4.5}, {6, 4.5}},
     collision_mask = {
@@ -42,7 +43,7 @@ local stargate = {
         priority = "medium",
         width = 500,
         height = 500,
-        scale = 1.2
+        scale = 1.5
       },
       {
         filename = path.."gateway-shadow.png",
@@ -50,7 +51,7 @@ local stargate = {
         priority = "medium",
         width = 500,
         height = 500,
-        scale = 1.2
+        scale = 1.5
       }
     }
   }

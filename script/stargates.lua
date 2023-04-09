@@ -494,7 +494,7 @@ function Stargate.activate(origin, destination, player_index)
     
     -- -- TODO: energy, error message
     if not Stargate.can_fire(origin, 1000000000) then 
-      game.players[player_index].print({"low-power-stargate"})
+      game.players[player_index].print({"stargate-se.low-power-stargate"})
       return
     end 
 
