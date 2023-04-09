@@ -43,7 +43,7 @@ local stargate = {
         priority = "medium",
         width = 500,
         height = 500,
-        scale = 1.5
+        scale = 1.4
       },
       {
         filename = path.."gateway-shadow.png",
@@ -51,7 +51,7 @@ local stargate = {
         priority = "medium",
         width = 500,
         height = 500,
-        scale = 1.5
+        scale = 1.4
       }
     }
   }
