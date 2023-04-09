@@ -1,0 +1,9 @@
+{
+  "name": "stargates",
+  "version": "0.0.1",
+  "title": "Stargates SE",
+  "author": "Kellbot",
+  "description": "Adds Stargates to Space Exploration",
+  "dependencies": ["base >= 1.1", "space-exploration >= 0.6.101"],
+  "factorio_version": "1.1"
+}
