@@ -1,4 +1,4 @@
-local path = "__stargates__/data/entities/stargate/"
+local path = "__stargates-se__/data/entities/stargate/"
 local name = 'stargate'
 local localised_name = {'stargates-se.stargate'}
 
