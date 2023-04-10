@@ -78,4 +78,14 @@ util.angle = function(position_1, position_2)
   return math.atan2(d_y, d_x)
 end
 
+function util.find_first_descendant_by_name(gui_element, name)
+  for _, child in pairs(gui_element.children) do
+    if child.name == name then
+      return child
+    end
+    local found = util.find_first_descendant_by_name(child, name)
+    if found then return found end
+  end
+end
+
 return util

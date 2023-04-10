@@ -83,6 +83,10 @@ local make_rename_frame = function(player, caption)
 
 end
 
+local format_energy = function(energy)
+  return string.format("%.2f",energy/1000000000) .. "GJ"
+end
+
 local get_force_color = function(force)
   local player = force.connected_players[1]
   if player and player.valid then
@@ -152,8 +156,6 @@ local make_stargate_gui = function(player, source)
     player.opened = nil
   end
 
-  print("Making new frame")
-
   if not (source and source.valid and not data.to_be_removed[source.unit_number]) then
     unlink_stargate(player)
     return
@@ -164,7 +166,14 @@ local make_stargate_gui = function(player, source)
   if not network then return end
 
   local gui = player.gui.screen
-  local frame = gui.add{type = "frame", direction = "vertical", ignored_by_interaction = false}
+  local frame = gui.add{
+    type = "frame", 
+    direction = "vertical", 
+    ignored_by_interaction = false,
+    tags = {
+      unit_number = source.unit_number
+    }
+  }
   if location then
     frame.location = location
   else
@@ -200,7 +209,18 @@ local make_stargate_gui = function(player, source)
     }
   util.register_gui(data.button_actions, close_button, {type = "close_button"})
 
-  local inner = frame.add{type = "frame", style = "inside_deep_frame"}
+  outer = frame.add{ type="frame", name="stargate_outer_gui", direction="vertical", style="b_inner_frame"}
+  outer.style.padding = 10
+
+  local energy_bar = outer.add{ type="progressbar", name="stargate_energy_progress", size = 300, value=0, caption="Energy: ", style="space_platform_progressbar_capsule"}
+  energy_bar.caption={"stargates-se.energy-label",
+     format_energy(source.energy) .. " / " .. (Stargate.energy_required(source) and format_energy(Stargate.energy_required(source)) or "?")
+  }
+  energy_bar.value = Stargate.energy_required(source) and ((source.energy or 0) / Stargate.energy_required(source)) or 0
+  energy_bar.style.bottom_margin = 10
+
+  local inner = outer.add{type = "frame", style = "inside_deep_frame", direction = "vertical"}
+
   local scroll = inner.add{type = "scroll-pane", direction = "vertical"}
   scroll.style.maximal_height = (player.display_resolution.height / player.display_scale) * 0.8
   local column_count = ((player.display_resolution.width / player.display_scale) * 0.6) / preview_size
@@ -267,11 +287,14 @@ local make_stargate_gui = function(player, source)
       inner_flow.style.vertically_stretchable = true
       inner_flow.style.horizontally_stretchable = true
       inner_flow.style.horizontal_align = "center"
+
+
+
       local map = inner_flow.add
       {
         type = "minimap",
         surface_index = stargate_entity.surface.index,
-        zoom = 1,
+        zoom = 0.5,
         force = stargate_entity.force.name,
         position = position,
       }
@@ -295,7 +318,7 @@ local make_stargate_gui = function(player, source)
     end
   end
   if not any then
-    holding_table.add{type = "label", caption = {"starates-se.no-stargates"}}
+    holding_table.add{type = "label", caption = {"stargates-se.no-stargates"}}
   end
 end
 
@@ -490,23 +513,44 @@ function Stargate.activate(origin, destination, player_index)
 
     -- Check that dialing gate has sufficient power. This should maybe happen earlier.
     if not (origin and origin.valid) then return end
+
+    local player = game.players[player_index]
     
+    if not (player and player.valid) then return end
+
+   
     -- -- TODO: energy, error message
-    if not Stargate.can_fire(origin, 1000000000) then 
-      game.players[player_index].print({"stargates-se.low-power-stargate"})
+    if not Stargate.can_fire(origin, Stargate.energy_required(origin)) then 
+      player.print({"stargates-se.low-power-stargate"})
       return
     end 
+
+    rendering.draw_animation { animation = "event-horizon",
+            target = origin,
+            target_offset = target_offset or { 0, 0 },
+            surface = player.surface,
+            animation_speed = animation_speed or 1,
+            animation_offset = animation_offset or 0,
+            time_to_live = 120,
+          }
+
+        rendering.draw_animation { animation = "event-horizon",
+          target = destination,
+          target_offset = target_offset or { 0, 0 },
+          surface = player.surface,
+          animation_speed = animation_speed or 1,
+          animation_offset = animation_offset or 0,
+          time_to_live = 120,
+          render_layer = 129,
+        }
 
     if not (destination and destination.valid) then return end
 
     local destination_surface = destination.surface
-    local destination_position = { x = destination.position.x + 3, y = destination.position.y + 3 }
-    local player = game.players[player_index]
-    if not (player and player.valid) then return end
-
-    --This teleport doesn't check collisions. If someone complains, make it check 'can_place' and if false find a positions etc....
+    local destination_position = { x = destination.position.x, y = destination.position.y + 3 }
+ --This teleport doesn't check collisions. If someone complains, make it check 'can_place' and if false find a positions etc....
     player.teleport(destination_position, destination_surface)
-    origin.energy = 0
+    origin.energy = origin.energy - Stargate.energy_required(origin)
     unlink_stargate(player)
     add_recent(player, destination)
 end
@@ -516,14 +560,16 @@ local on_built_entity = function(event)
   if not (entity and entity.valid) then return end
   if entity.name ~= stargate_name then return end
   local surface = entity.surface
-  -- Stargates can only be build on homeworlds
-  local zone = remote.call("space-exploration", "get_zone_from_surface_index", { surface_index = surface.index})
-  if not zone.is_homeworld then
-    remote.call("space-exploration", "cancel_entity_creation",  {entity=entity, player_index=event.player_index, message={"stargates-se.homeworld-only"}}, event)
-    return
+  -- If enabled, Stargates can only be build on homeworlds
+  if settings.global["stargates-se-homeworlds-only"] then
+    local zone = remote.call("space-exploration", "get_zone_from_surface_index", { surface_index = surface.index})
+    if not zone.is_homeworld then
+      remote.call("space-exploration", "cancel_entity_creation",  {entity=entity, player_index=event.player_index, message={"stargates-se.homeworld-only"}}, event)
+      return
+    end
   end
   local force = entity.force
-  local name = "stargate ".. entity.unit_number
+  local name = surface.name .. " ".. entity.unit_number
   local network = get_network('player')
   local stargate_data = {stargate = entity, flying_text = text, tag = tag}
   network[name] = stargate_data
@@ -711,6 +757,17 @@ local on_gui_opened= function(event)
 
 end
 
+function Stargate.update_gui(player)
+  local root = get_stargate_frame(player)
+  if not (root  and root.tags and root.tags.unit_number) then return end
+
+  local stargate = data.stargate_map[root.tags.unit_number].stargate
+  local energy_bar = util.find_first_descendant_by_name(root, "stargate_energy_progress")
+  energy_bar.value = Stargate.energy_required(stargate) and ((stargate.energy or 0) / Stargate.energy_required(stargate)) or 0
+
+
+end
+
 function Stargate.triggered(entity, player)
   local character = player.character
   if not (entity and entity.valid and entity.name == stargate_name) then return error("HEOK") end
@@ -730,6 +787,20 @@ end
 function Stargate.can_fire(stargate, energy_required)
   return stargate and stargate.energy >= energy_required
 end
+
+function Stargate.energy_required(origin) 
+  -- Right now this is a constant but in the future we might want to make it vary with the distance between gates
+  return 1000000000;
+end
+
+function Stargate.on_tick(event)
+  if event.tick % 60 == 0 then
+    for _, player in pairs(game.connected_players) do
+      Stargate.update_gui(player)
+    end
+  end
+end
+
 
 local stargates = {}
 
@@ -763,6 +834,7 @@ stargates.events =
   [defines.events.on_chart_tag_added] = on_chart_tag_added,
 
  [defines.events.on_gui_opened] = on_gui_opened,
+ [defines.events.on_tick] = Stargate.on_tick,
 --   [defines.events.on_rocket_launched] = on_rocket_launched
 
 }

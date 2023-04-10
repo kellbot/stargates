@@ -7,8 +7,8 @@ local stargate = {
     name = "stargate",
     localised_name = localised_name,
     collision_box = {{-6, -2.5}, {6, 4.5}},
-    selection_box = {{-6, -4.5}, {6, 4.5}},
-    drawing_box = {{-6, -4.5}, {6, 4.5}},
+    selection_box = {{-6, -6}, {6, 6}},
+    drawing_box = {{-6, -6}, {6, 6}},
     collision_mask = {
       "floor-layer",
       "object-layer",
@@ -21,17 +21,19 @@ local stargate = {
         "placeable-neutral",
         "placeable-player",
         "player-creation",
-        "not-upgradable"
+        "not-upgradable",
+        "not-rotatable"
     },
     energy_source = {
-        buffer_capacity = "1GJ",
-        input_flow_limit = "50GW",
+        buffer_capacity = "5GJ",
+        input_flow_limit = "50MW",
         output_flow_limit = "0kW",
         type = "electric",
-        usage_priority = "secondary-input"
+        usage_priority = "secondary-input",
+        drain = "100kW" 
       },
     energy_production = "0KW",
-    energy_usage = "10MW",
+    energy_usage = "0GW",
     se_allow_in_space = false,
     minable = {result = name, mining_time = 3},
     icon = path.."gateway.png",
@@ -54,14 +56,28 @@ local stargate = {
         scale = 1.4
       }
     }
-  }
+  },
+
+}
+
+local event_horizon = {
+  type = "animation",
+  name = "event-horizon",
+  filename = path.."event-horizon-sr.png",
+  width = 500,
+  height = 500,
+  line_length = 8,
+  frame_count = 64,
+  animation_speed = 0.5,
+  scale = 1.4
+
 }
 
 local stargate_item = {
     type = "item",
     name = name,
-    icon = path.."gateway.png",
-    icon_size = 500,
+    icon = path.."gateway-item.png",
+    icon_size = 256,
     subgroup = "transport",
     stack_size = 1,
     place_result = name
@@ -94,7 +110,7 @@ local technology =
   name = name,
   localised_name = localised_name,
   icon_size = 500,
-  icon = path.."gateway.png",
+  icon = path.."gateway-icon.png",
   effects =
   {
     {
@@ -130,11 +146,13 @@ local hotkey =
   key_sequence = "Control + F"
 }
 
+
 data:extend
 {
   stargate,
   stargate_item,
   recipe,
+  event_horizon,
   technology,
   stargate_flying_text,
   hotkey
