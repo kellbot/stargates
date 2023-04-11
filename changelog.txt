@@ -5,4 +5,3 @@ Date: 04. 11. 2023
     - Added a thumbnail for the mod browser
   Bugfixes:
     - Fixed a crash in editor mode
----------------------------------------------------------------------------------------------------
