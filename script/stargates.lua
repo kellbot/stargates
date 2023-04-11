@@ -770,6 +770,8 @@ end
 
 function Stargate.triggered(entity, player)
   local character = player.character
+  -- don't do anything in editor mode
+  if not character then return end
   if not (entity and entity.valid and entity.name == stargate_name) then return error("HEOK") end
   if character.type ~= "character" then return end
   local force = entity.force
