@@ -537,7 +537,7 @@ function Stargate.activate(origin, destination, player_index)
         rendering.draw_animation { animation = "event-horizon",
           target = destination,
           target_offset = target_offset or { 0, 0 },
-          surface = player.surface,
+          surface = destination.surface,
           animation_speed = animation_speed or 1,
           animation_offset = animation_offset or 0,
           time_to_live = 120,
