@@ -561,7 +561,7 @@ local on_built_entity = function(event)
   if entity.name ~= stargate_name then return end
   local surface = entity.surface
   -- If enabled, Stargates can only be build on homeworlds
-  if settings.global["stargates-se-homeworlds-only"] then
+  if settings.global["stargates-se-homeworlds-only"].value then
     local zone = remote.call("space-exploration", "get_zone_from_surface_index", { surface_index = surface.index})
     if not zone.is_homeworld then
       remote.call("space-exploration", "cancel_entity_creation",  {entity=entity, player_index=event.player_index, message={"stargates-se.homeworld-only"}}, event)
